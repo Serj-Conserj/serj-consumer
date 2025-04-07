@@ -6,7 +6,7 @@ load_dotenv()
 
 postgres_user = os.getenv("POSTGRES_USER")
 postgres_password = os.getenv("POSTGRES_PASSWORD")
-postgres_host = 5432
+postgres_host = os.getenv("POSTGRES_HOST")
 postgres_port = os.getenv("PG_PORT")
 postgres_db = os.getenv("POSTGRES_DB")
 
