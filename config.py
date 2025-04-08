@@ -27,3 +27,6 @@ def connect_queue():
 
     channel = connection.channel()
     return channel, connection
+
+call_queue = os.getenv("CALL_QUEUE")
+pars_queue = os.getenv("PARS_QUEUE")

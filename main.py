@@ -1,14 +1,14 @@
 import asyncio
 import uuid
 import json
+import time
 from config import *
 from db_connection import get_booking_data_sync
 from sqlalchemy import text
 import pika
+from config import call_queue, pars_queue
 
 def create_queue(channel):
-    call_queue = "call_queue"
-    pars_queue = "pars_queue"
     channel.queue_declare(queue=call_queue)
     channel.queue_declare(queue=pars_queue)
     return call_queue, pars_queue
@@ -24,9 +24,13 @@ def callback(ch, method, properties, body):
             if result:
                 if method.routing_key == call_queue:
                     #TODO send data to a call part 
+                    print(call_queue , "Result ", result)
+
                     pass
                 if method.routing_key == pars_queue:
                     #TODO send data to a parsing part 
+                    print(pars_queue , "Result ", result)
+                    time.sleep(10)
                     pass
                 
     except Exception as e:
