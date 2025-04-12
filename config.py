@@ -14,8 +14,8 @@ postgres_db = os.getenv("POSTGRES_DB")
 def connect_queue():
 
     connection_params = pika.ConnectionParameters(
-        host=os.getenv("HOST_QUEUE"),
-        port=os.getenv("PORT_QUEUE"),
+        host=os.getenv("RABBITMQ_HOST"),
+        port=os.getenv("RABBITMQ_PORT"),
         virtual_host="/",
         credentials=pika.PlainCredentials(
             username=os.getenv("USERNAME_QUEUE"),
