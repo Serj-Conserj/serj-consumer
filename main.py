@@ -4,7 +4,6 @@ import json
 import time
 from config import *
 from db_connection import get_booking_data_sync
-from sqlalchemy import text
 import pika
 from config import call_queue, pars_queue
 
