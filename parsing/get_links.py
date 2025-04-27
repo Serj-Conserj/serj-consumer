@@ -5,13 +5,15 @@ import time
 BASE_FILE = "parsers/leclick/leclick.htm"
 OUTPUT_FILE = "parsers/leclick/restaurant_links.txt"
 
+
 def get_restaurant_links(url):
-    with open(BASE_FILE, 'r', encoding='utf-8') as leclick_file:
+    with open(BASE_FILE, "r", encoding="utf-8") as leclick_file:
         while True:
-            soup = BeautifulSoup(leclick_file, 'html.parser')
-            place_a = soup.find_all('a', class_='image', href=True)
-            links = [a['href'] for a in place_a if a.get('href')]
+            soup = BeautifulSoup(leclick_file, "html.parser")
+            place_a = soup.find_all("a", class_="image", href=True)
+            links = [a["href"] for a in place_a if a.get("href")]
             return links
+
 
 all_restaurant_links = []
 
@@ -21,7 +23,9 @@ start_time = time.time()
 first_page_links = get_restaurant_links(BASE_FILE)
 end_time = time.time()
 all_restaurant_links.extend(first_page_links)
-print(f"Page parsed, {len(first_page_links)} links found in {end_time - start_time:.2f} seconds.")
+print(
+    f"Page parsed, {len(first_page_links)} links found in {end_time - start_time:.2f} seconds."
+)
 
 overall_end_time = time.time()
 elapsed_time = overall_end_time - overall_start_time

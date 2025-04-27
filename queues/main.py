@@ -1,0 +1,54 @@
+import asyncio
+import json
+from aio_pika import connect_robust, IncomingMessage
+from config import rabbitmq_url, call_queue, pars_queue
+from queues.db_connection import get_booking_data_async
+import time
+
+
+async def process_call(msg: IncomingMessage):
+    async with msg.process():
+        data = json.loads(msg.body)
+        booking_id = data.get("booking_id")
+        print("[CALL] received", booking_id)
+        if booking_id:
+            result = await get_booking_data_async(booking_id)
+            print("[CALL] result", result)
+            # … отправка в call-часть …
+            time.sleep(100)
+
+
+async def process_pars(msg: IncomingMessage):
+    async with msg.process():
+        data = json.loads(msg.body)
+        booking_id = data.get("booking_id")
+        print("[PARS] received", booking_id)
+        if booking_id:
+            result = await get_booking_data_async(booking_id)
+            print("[PARS] result", result)
+            # … отправка в parsing-часть …
+            time.sleep(100)
+
+
+async def consume_queue(queue_name: str, processor):
+
+    conn = await connect_robust(rabbitmq_url)
+    chan = await conn.channel()
+    await chan.set_qos(prefetch_count=1)
+    queue = await chan.declare_queue(queue_name, durable=True)
+    await queue.consume(processor)
+    print(f"[INFO] consuming {queue_name}")
+    return conn
+
+
+async def main():
+    conn1 = await consume_queue(call_queue, process_call)
+    conn2 = await consume_queue(pars_queue, process_pars)
+
+    await asyncio.gather(
+        asyncio.Future(),
+    )
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
