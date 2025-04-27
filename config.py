@@ -13,8 +13,7 @@ postgres_db = os.getenv("POSTGRES_DB")
 # RabbitMQ: строим URL из отдельных переменных
 rabbitmq_user = os.getenv("USERNAME_QUEUE")
 rabbitmq_pass = os.getenv("PASSWORD_QUEUE")
-# rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
-rabbitmq_host = "rabbitmq"
+rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
 rabbitmq_port = os.getenv("RABBITMQ_PORT", "5672")
 
 rabbitmq_url = (
