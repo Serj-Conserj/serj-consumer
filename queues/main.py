@@ -15,7 +15,7 @@ async def process_call(msg: IncomingMessage):
             result = await get_booking_data_async(booking_id)
             print("[CALL] result", result)
             # … отправка в call-часть …
-            time.sleep(100)
+            await asyncio.sleep(1)
 
 
 async def process_pars(msg: IncomingMessage):
@@ -27,7 +27,7 @@ async def process_pars(msg: IncomingMessage):
             result = await get_booking_data_async(booking_id)
             print("[PARS] result", result)
             # … отправка в parsing-часть …
-            time.sleep(100)
+            await asyncio.sleep(100)
 
 
 async def consume_queue(queue_name: str, processor):
