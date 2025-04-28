@@ -29,7 +29,6 @@ async def process_pars(msg: IncomingMessage):
             # … отправка в parsing-часть …
             await asyncio.sleep(100)
 
-
 async def consume_queue(queue_name: str, processor):
 
     conn = await connect_robust(rabbitmq_url)
@@ -39,16 +38,3 @@ async def consume_queue(queue_name: str, processor):
     await queue.consume(processor)
     print(f"[INFO] consuming {queue_name}")
     return conn
-
-
-async def main():
-    conn1 = await consume_queue(call_queue, process_call)
-    conn2 = await consume_queue(pars_queue, process_pars)
-
-    await asyncio.gather(
-        asyncio.Future(),
-    )
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

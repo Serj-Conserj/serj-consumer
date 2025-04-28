@@ -102,15 +102,19 @@ def extract_restaurant_data(url, data, data_count):
 
         return {
             "full_name": full_name.get_text(strip=True) if full_name else None,
-            "alternate_name": data[data_count]["alternate_name"]
-            if data[data_count]["alternate_name"]
-            else None,
+            "alternate_name": (
+                data[data_count]["alternate_name"]
+                if data[data_count]["alternate_name"]
+                else None
+            ),
             "address": address.get_text(strip=True) if address else None,
             "close_metro": metro_list if metro_list else None,
             "main_cuisine": cuisines if cuisines else None,
-            "goo_rating": data[data_count]["goo_rating"]
-            if data[data_count]["goo_rating"]
-            else None,
+            "goo_rating": (
+                data[data_count]["goo_rating"]
+                if data[data_count]["goo_rating"]
+                else None
+            ),
             "party_booking_name": url,
             "booking_form": booking_form,
         }

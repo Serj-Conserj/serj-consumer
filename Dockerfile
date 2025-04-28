@@ -1,18 +1,28 @@
-# 1) какой-нибудь официальный образ Python
-FROM python:3.9-slim
+# Используем официальный Python образ
+FROM python:3.10-slim
 
-# 2) создаём рабочую директорию в контейнере
+# Устанавливаем системные зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Устанавливаем Poetry (опционально, если понадобится) или pip обновляем
+RUN pip install --upgrade pip
+
+# Копируем requirements внутрь контейнера
+COPY requirements.txt /app/requirements.txt
+
+# Переходим в рабочую директорию
 WORKDIR /app
 
-# 3) копируем зависимости и устанавливаем
-COPY requirements.txt ./
+# Устанавливаем все зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 4) копируем весь код приложения
-COPY . .
+# Копируем всё приложение внутрь контейнера
+COPY . /app
 
-# 5) добавляем корень приложения в PYTHONPATH
 ENV PYTHONPATH=/app
-
-# 6) по умолчанию запускаем наш consumer как модуль
-CMD ["python", "-u", "-m", "queues.main"]
+# Команда по умолчанию для запуска приложения
+CMD ["python", "voice_bot/app.py"]

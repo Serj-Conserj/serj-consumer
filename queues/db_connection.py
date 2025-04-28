@@ -43,14 +43,14 @@ async def get_booking_data_async(booking_id: str):
         return None
 
     return {
-        "booking_id": row["booking_id"],
-        "booking_date": row["booking_date"],
-        "recording_date": row["recording_date"],
-        "num_of_people": row["num_of_people"],
-        "special_requests": row["special_requests"],
-        "confirmed": row["confirmed"],
-        "first_name": row["first_name"],
-        "username": row["username"],
-        "telegram_id": row["telegram_id"],
-        "place_name": row["place_name"],
+        # "booking_id": row["booking_id"],
+        "date": row["booking_date"],
+        "date": row["recording_date"],
+        "people": row["num_of_people"],
+        # "special_requests": row["special_requests"],
+        # "confirmed": row["confirmed"],
+        "name": row["first_name"],
+        # "username": row["username"],
+        # "telegram_id": row["telegram_id"],
+        "address": row["place_name"],
     }
