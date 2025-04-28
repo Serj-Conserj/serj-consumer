@@ -29,6 +29,7 @@ async def process_pars(msg: IncomingMessage):
             # … отправка в parsing-часть …
             await asyncio.sleep(100)
 
+
 async def consume_queue(queue_name: str, processor):
 
     conn = await connect_robust(rabbitmq_url)

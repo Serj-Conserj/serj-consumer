@@ -5,7 +5,13 @@ from aio_pika import connect_robust
 from voice_bot.services import VoiceBotService
 from queues.db_connection import get_booking_data_async
 from queues.process_queue import consume_queue, process_pars
-from config import rabbitmq_url, call_queue, pars_queue
+from config import (
+    rabbitmq_url,
+    call_queue,
+    pars_queue,
+    booking_failure_state,
+    booking_success_state,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +68,6 @@ async def fetch_booking_info_from_queue(queue_name: str):
         except Exception as e:
             # print(f"⚠️ No message received yet ({e})")
             await asyncio.sleep(1)
-        
 
     if not incoming:
         await conn.close()
@@ -78,7 +83,6 @@ async def fetch_booking_info_from_queue(queue_name: str):
     booking_info = await get_booking_data_async(booking_id)
     await conn.close()
     return booking_info
-
 
 
 @app.websocket("/ws")
@@ -118,16 +122,20 @@ async def websocket_endpoint(websocket: WebSocket):
                     logger.info(f"🤖 Ответ бота: '{bot_reply}'")
                 except Exception as e:
                     logger.error(f"❌ Ошибка генерации ответа: {e}")
-    
+
                     farewell = "Спасибо за звонок, до свидания!"
                     try:
                         await websocket.send_bytes(
                             await asyncio.to_thread(service.tts.synthesize, farewell)
                         )
                     except Exception as synth_err:
-                        logger.error(f"❌ Ошибка при отправке финального сообщения: {synth_err}")
+                        logger.error(
+                            f"❌ Ошибка при отправке финального сообщения: {synth_err}"
+                        )
 
-                    await websocket.send_text(json.dumps({"status": "failed"}))
+                    await websocket.send_text(
+                        json.dumps({"status": booking_failure_state})
+                    )
                     logger.info("🔔 Статус сессии: failed (из-за ошибки модели)")
 
                     try:
@@ -136,17 +144,18 @@ async def websocket_endpoint(websocket: WebSocket):
                                 "https://conserj.ru/api/bookings/update_status",
                                 json={
                                     "booking_id": str(booking_info["booking_id"]),
-                                    "status": "failed"
+                                    "status": booking_failure_state,
                                 },
                                 timeout=5,
                             )
                             response.raise_for_status()
                         logger.info("✅ Статус 'failed' успешно отправлен в бекенд")
                     except Exception as post_err:
-                        logger.error(f"❌ Ошибка при обновлении статуса после сбоя: {post_err}")
+                        logger.error(
+                            f"❌ Ошибка при обновлении статуса после сбоя: {post_err}"
+                        )
 
-                    break 
-
+                    break
 
                 status = service.extract_status(bot_reply)
                 if status:
@@ -162,10 +171,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     try:
                         async with httpx.AsyncClient() as client:
                             response = await client.post(
-                                "https://conserj.ru/api/bookings/update_status", #TODO сделать обращение внутри докера
+                                "https://conserj.ru/api/bookings/update_status",  # TODO сделать обращение внутри докера
                                 json={
                                     "booking_id": str(booking_info["booking_id"]),
-                                    "status": status # "booked" or "failed"
+                                    "status": status,
                                 },
                                 timeout=5,
                             )
@@ -210,5 +219,6 @@ async def startup_event():
 if __name__ == "__main__":
     import uvicorn
     import os
+
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     uvicorn.run(app, host="0.0.0.0", port=8080, log_config=None)

@@ -4,6 +4,7 @@ import tempfile
 import soundfile as sf
 from voice_bot.models import TTSModel, ASRModel, LLMModel
 import re
+from config import booking_success_state, booking_failure_state
 
 
 class VoiceBotService:
@@ -14,7 +15,7 @@ class VoiceBotService:
 
     def build_system_prompt(self, booking_info: dict) -> str:
         date_obj = booking_info["date"]
-        
+
         date_word = date_obj.strftime("%Y-%m-%d")
         time_word = date_obj.strftime("%H:%M")
         return (
@@ -28,9 +29,9 @@ class VoiceBotService:
             # 'Если бронь подтверждена — скажи: "Спасибо, бронь подтверждена. Хорошего дня!"\n'
             # 'Если мест нет — скажи: "Хорошо, спасибо, я перезвоню в другой раз."\n'
             # "При непонятных ответах — повтори суть запроса.\n"
-            'ВАЖНО! если ты понимаешь, что тебе сказали, что стол смогли успешно забронировать, то верни дословно "Успех Брони"'
-            'ВАЖНО! если ты понимаешь, что тебе сказали, что стол ни как не смогут забронировать, то верни дословно "Не Успех Брони"'
-            'ТАКЖЕ не отвечай цифрами все цифры пиши буквами'
+            f"ВАЖНО! если ты понимаешь, что тебе сказали, что стол смогли успешно забронировать, то верни дословно {booking_success_state}"
+            f"ВАЖНО! если ты понимаешь, что тебе сказали, что стол ни как не смогут забронировать, то верни дословно {booking_failure_state}"
+            "ТАКЖЕ не отвечай цифрами все цифры пиши буквами"
         )
 
     def number_to_words(self, num):
@@ -136,9 +137,9 @@ class VoiceBotService:
         address = booking_info["address"]
         name = booking_info["name"]
         people = self.number_to_words(booking_info["people"])
-        
+
         date_obj = booking_info["date"]
-        
+
         date_word = self.date_to_words(date_obj.strftime("%Y-%m-%d"))
         time_word = self.time_to_words(date_obj.strftime("%H:%M"))
 
@@ -180,11 +181,11 @@ class VoiceBotService:
 
     def extract_status(self, text: str):
         tl = text.lower()
-        if "НЕ Успех Брони".lower() in tl:
-            return "failed"
-        if "Успех Брони".lower() in tl:
-            return "booked"
-        
+        if booking_failure_state.lower() in tl:
+            return booking_failure_state
+        if booking_success_state.lower() in tl:
+            return booking_success_state
+
         return False
 
     def process_conversation(self, user_input: str, system_prompt: str) -> str:

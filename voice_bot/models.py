@@ -1,4 +1,5 @@
 import whisper
+
 # from TTS.api import TTS
 from transformers import pipeline
 import torch
@@ -43,11 +44,11 @@ class LLMModel:
             return response.json()["choices"][0]["message"]["content"].strip()
         except requests.RequestException as e:
             print(f"[ERROR] Request failed: {e}")
-            raise RuntimeError(f"Ошибка при получении ответа от модели: {e}") 
+            raise RuntimeError(f"Ошибка при получении ответа от модели: {e}")
 
         except (KeyError, IndexError) as e:
             print(f"[ERROR] Invalid response structure: {e}")
-            raise RuntimeError(f"Ошибка обработки ответа от модели: {e}") 
+            raise RuntimeError(f"Ошибка обработки ответа от модели: {e}")
 
 
 class ASRModel:
