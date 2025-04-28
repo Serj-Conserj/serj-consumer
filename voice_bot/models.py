@@ -43,10 +43,11 @@ class LLMModel:
             return response.json()["choices"][0]["message"]["content"].strip()
         except requests.RequestException as e:
             print(f"[ERROR] Request failed: {e}")
-            return "Ошибка при получении ответа от модели."
+            raise RuntimeError(f"Ошибка при получении ответа от модели: {e}") 
+
         except (KeyError, IndexError) as e:
             print(f"[ERROR] Invalid response structure: {e}")
-            return "Ошибка обработки ответа от модели."
+            raise RuntimeError(f"Ошибка обработки ответа от модели: {e}") 
 
 
 class ASRModel:

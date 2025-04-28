@@ -109,12 +109,44 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"💬 Распознанный текст: '{user_text}'")
 
                 logger.info("🧠 Генерация ответа LLM...")
-                bot_reply = await asyncio.to_thread(
-                    service.process_conversation,
-                    user_input=user_text,
-                    system_prompt=system_prompt,
-                )
-                logger.info(f"🤖 Ответ бота: '{bot_reply}'")
+                try:
+                    bot_reply = await asyncio.to_thread(
+                        service.process_conversation,
+                        user_input=user_text,
+                        system_prompt=system_prompt,
+                    )
+                    logger.info(f"🤖 Ответ бота: '{bot_reply}'")
+                except Exception as e:
+                    logger.error(f"❌ Ошибка генерации ответа: {e}")
+    
+                    farewell = "Спасибо за звонок, до свидания!"
+                    try:
+                        await websocket.send_bytes(
+                            await asyncio.to_thread(service.tts.synthesize, farewell)
+                        )
+                    except Exception as synth_err:
+                        logger.error(f"❌ Ошибка при отправке финального сообщения: {synth_err}")
+
+                    await websocket.send_text(json.dumps({"status": "failed"}))
+                    logger.info("🔔 Статус сессии: failed (из-за ошибки модели)")
+
+                    try:
+                        async with httpx.AsyncClient() as client:
+                            response = await client.post(
+                                "https://conserj.ru/api/bookings/update_status",
+                                json={
+                                    "booking_id": str(booking_info["booking_id"]),
+                                    "status": "failed"
+                                },
+                                timeout=5,
+                            )
+                            response.raise_for_status()
+                        logger.info("✅ Статус 'failed' успешно отправлен в бекенд")
+                    except Exception as post_err:
+                        logger.error(f"❌ Ошибка при обновлении статуса после сбоя: {post_err}")
+
+                    break 
+
 
                 status = service.extract_status(bot_reply)
                 if status:
