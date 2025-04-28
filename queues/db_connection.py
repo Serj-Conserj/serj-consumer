@@ -43,7 +43,7 @@ async def get_booking_data_async(booking_id: str):
         return None
 
     return {
-        # "booking_id": row["booking_id"],
+        "booking_id": row["booking_id"],
         "date": row["booking_date"],
         "date": row["recording_date"],
         "people": row["num_of_people"],

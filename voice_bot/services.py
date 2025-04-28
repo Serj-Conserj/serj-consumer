@@ -13,11 +13,15 @@ class VoiceBotService:
         self.tts = TTSModel()
 
     def build_system_prompt(self, booking_info: dict) -> str:
+        date_obj = booking_info["date"]
+        
+        date_word = date_obj.strftime("%Y-%m-%d")
+        time_word = date_obj.strftime("%H:%M")
         return (
             "Ты — профессиональный голосовой бот по бронированию столиков в ресторанах. "
             "Говоришь только по‑русски.\n\n"
             f"Твоя цель: забронировать столик в ресторан: {booking_info['address']} на дату "
-            f"{booking_info['date']} в {booking_info['time']} для {booking_info['people']} человек "
+            f"{date_word} в {time_word} для {booking_info['people']} человек "
             f"на имя {booking_info['name']}.\n\n"
             " Ты уже назвал администратору всё данные теперь он будет уточнять у теб] что-то, твоя задча отвечать только то, что мы хотим заьронировать - предумывать ничего не надо"
             "Отвечай всегда кратко."
@@ -26,6 +30,7 @@ class VoiceBotService:
             # "При непонятных ответах — повтори суть запроса.\n"
             'ВАЖНО! если ты понимаешь, что тебе сказали, что стол смогли успешно забронировать, то верни дословно "Успех Брони"'
             'ВАЖНО! если ты понимаешь, что тебе сказали, что стол ни как не смогут забронировать, то верни дословно "Не Успех Брони"'
+            'ТАКЖЕ не отвечай цифрами все цифры пиши буквами'
         )
 
     def number_to_words(self, num):
@@ -128,19 +133,19 @@ class VoiceBotService:
         return text
 
     def generate_greeting(self, booking_info: dict) -> str:
-
-        processed_info = {
-            "address": booking_info["address"],
-            "people": self.number_to_words(booking_info["people"]),
-            "date": self.date_to_words(booking_info["date"]),
-            "time": self.time_to_words(booking_info["time"]),
-            "name": booking_info["name"],
-        }
+        address = booking_info["address"]
+        name = booking_info["name"]
+        people = self.number_to_words(booking_info["people"])
+        
+        date_obj = booking_info["date"]
+        
+        date_word = self.date_to_words(date_obj.strftime("%Y-%m-%d"))
+        time_word = self.time_to_words(date_obj.strftime("%H:%M"))
 
         return (
-            f"Здравствуйте. Хочу забронировать столик в ресторан {processed_info['address']} "
-            f"на {processed_info['people']} человек, {processed_info['date']} в {processed_info['time']}, "
-            f"на имя {processed_info['name']}."
+            f"Здравствуйте. Хочу забронировать столик в ресторан {address} "
+            f"на {people} человек, {date_word} в {time_word}, "
+            f"на имя {name}."
         )
 
     # def process_conversation(self, history: str, user_input: str, system_prompt: str) -> str:
@@ -175,10 +180,11 @@ class VoiceBotService:
 
     def extract_status(self, text: str):
         tl = text.lower()
-        if "Успех Брони".lower() in tl:
-            return "booked"
         if "НЕ Успех Брони".lower() in tl:
             return "failed"
+        if "Успех Брони".lower() in tl:
+            return "booked"
+        
         return False
 
     def process_conversation(self, user_input: str, system_prompt: str) -> str:
