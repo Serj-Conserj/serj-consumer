@@ -93,9 +93,16 @@ async def admin_chat(uri: str):
             tmp_path.unlink(missing_ok=True)
 
             # 3) Ждём ввода администратора
-            admin_text = input(
-                "Ответ администратора (пустая строка — закончить): "
-            ).strip()
+            import random
+
+            admin_texts = [
+                "да забронировали для вас стол",
+                "простите не сможем забронировать",
+                "подскажите, пожалуйста, на какое кол-во персон?"
+            ]
+            weights = [0.5, 0.2, 0.3]
+
+            admin_text = random.choices(admin_texts, weights=weights, k=1)[0]
             if not admin_text:
                 print("[ADMIN] Завершение теста.")
                 break

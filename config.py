@@ -21,8 +21,8 @@ rabbitmq_url = (
 )
 
 # booking states
-booking_success_state = os.getenv("PASSWORD_QUEUE")
-booking_failure_state = os.getenv("PASSWORD_QUEUE")
+booking_success_state = os.getenv("BOOKING_SUCCESS_STATE")
+booking_failure_state = os.getenv("BOOKING_FAILURE_STATE")
 
 # Имена очередей
 call_queue = os.getenv("CALL_QUEUE")
