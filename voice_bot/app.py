@@ -111,7 +111,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 logger.info("🔡 Начало распознавания речи...")
                 user_text = await asyncio.to_thread(service.asr.transcribe, audio_data)
                 logger.info(f"💬 Распознанный текст: '{user_text}'")
-
+                if not user_text:
+                    continue
                 logger.info("🧠 Генерация ответа LLM...")
                 try:
                     bot_reply = await asyncio.to_thread(
