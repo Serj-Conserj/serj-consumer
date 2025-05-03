@@ -131,36 +131,73 @@
 
 import json
 import re
+import time
+from datetime import datetime
+
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+from urllib.parse import urljoin, urlparse, unquote
 
 class RestaurantParser:
-    def __init__(self, html):
+    def __init__(self, html, full_url):
         self.soup = BeautifulSoup(html, 'html.parser')
-    
-    def get_name(self):
-        # Остается без изменений
+        self.full_url = full_url
+        self.base_url = f"{urlparse(full_url).scheme}://{urlparse(full_url).netloc}"
+
+    def get_names(self):
+        names = {
+            'main': None,
+            'alternate': []
+        }
+        
         try:
-            return self.soup.select_one('.restTitle h1').text.strip()
-        except AttributeError:
-            return None
+            # 1. Извлечение из URL
+            url_path = urlparse(self.full_url).path
+            if '/restaurant/' in url_path:
+                slug = unquote(url_path.split('/restaurant/')[-1].split('/')[0])
+                name_from_url = ' '.join(
+                    part.capitalize() for part in slug.replace('-', ' ').split()
+                )
+                names['alternate'].append(name_from_url)
+            
+            # 2. Из data-атрибута
+            alternate_name_span = self.soup.find('span', class_='rest-card__fav-icon')
+            if alternate_name_span and 'data-name' in alternate_name_span.attrs:
+                names['alternate'].append(alternate_name_span['data-name'].strip())
+            
+            # 3. Из заголовка
+            title_text = self.soup.select_one('.restTitle h1')
+            if title_text:
+                title_parts = title_text.text.strip().split('/')
+                names['main'] = title_parts[0].strip()
+                if len(title_parts) > 1:
+                    names['alternate'].extend(
+                        [p.strip() for p in title_parts[1:] if p.strip()]
+                    )
+            
+            names['alternate'] = list(
+                {name for name in names['alternate'] if name and name != names['main']}
+            )
+            
+        except Exception as e:
+            print(f"Error parsing names: {str(e)}")
+        
+        return names
 
     def get_phone(self):
-        # Остается без изменений
         try:
             return self.soup.select_one('.phone-click').text.strip()
         except AttributeError:
             return None
 
     def get_address(self):
-        # Остается без изменений
         try:
             return self.soup.select_one('.address .address').text.strip()
         except AttributeError:
             return None
 
     def get_metro(self):
-        # Обрабатываем несколько станций метро
         try:
             metro_text = self.soup.select_one('.metro').text.strip()
             return [m.strip() for m in metro_text.split(',')]
@@ -168,14 +205,12 @@ class RestaurantParser:
             return []
 
     def get_type(self):
-        # Остается без изменений
         try:
             return self.soup.select_one('.restType').text.strip()
         except AttributeError:
             return None
 
     def get_average_check(self):
-        # Обрабатываем диапазон значений и разные форматы
         try:
             check_text = self.soup.find(text='Средний чек:').find_next().text.strip()
             if '—' in check_text:
@@ -185,14 +220,12 @@ class RestaurantParser:
             return None
 
     def get_cuisines(self):
-        # Остается без изменений
         try:
             return [a.text.strip() for a in self.soup.select('.kitchen a')]
         except AttributeError:
             return []
 
     def get_opening_hours(self):
-        # Обрабатываем "весь день" и отсутствие времени
         hours = {}
         days_map = {
             'd0': 'ВС', 'd1': 'ПН', 'd2': 'ВТ',
@@ -212,7 +245,6 @@ class RestaurantParser:
         return hours
 
     def get_menu_links(self):
-        # Новый метод для получения ссылок на меню
         menus = {}
         try:
             for link in self.soup.select('.goToMenu'):
@@ -233,7 +265,6 @@ class RestaurantParser:
         return photos
 
     def get_coordinates(self):
-        # Остается без изменений
         try:
             map_element = self.soup.select_one('.mapAction')
             return {
@@ -249,12 +280,14 @@ class RestaurantParser:
             # Основное бронирование
             main_booking = self.soup.select_one('.bookingBtn.mainBooking a')
             if main_booking:
-                booking_links['main'] = main_booking['href']
+                full_url = urljoin(self.base_url, main_booking['href'])
+                booking_links['main'] = full_url
 
             # Бронирование банкета
             banquet_booking = self.soup.select_one('.bookingBtn a[href*="banquet=1"]')
             if banquet_booking:
-                booking_links['banquet'] = banquet_booking['href']
+                full_url = urljoin(self.base_url, banquet_booking['href'])
+                booking_links['banquet'] = full_url
         except Exception as e:
             print(f"Error getting booking links: {str(e)}")
         return booking_links
@@ -301,8 +334,23 @@ class RestaurantParser:
         return reviews
 
     def parse(self):
+        names = self.get_names()
         data = {
-            # ... предыдущие поля ...
+            'full_name': names['main'],
+            'alternate_name': names['alternate'],
+            'phone': self.get_phone(),
+            'address': self.get_address(),
+            'close_metro': self.get_metro(),
+            'type': self.get_type(),
+            'average_check': self.get_average_check(),
+            'main_cuisine': self.get_cuisines(),
+            'opening_hours': self.get_opening_hours(),
+            'menu_links': self.get_menu_links(),
+            'photos': self.get_photos(),
+            'coordinates': self.get_coordinates(),
+            'features': {
+                'online_booking': 'принимает' if 'Забронировать' in self.soup.text else 'не принимает'
+            },
             'booking_links': self.get_booking_links(),
             'deposit_rules': self.get_deposit_rules(),
             'visit_purposes': self.get_visit_purposes(),
@@ -322,42 +370,53 @@ class RestaurantParser:
             if short_desc:
                 return short_desc.text.strip()
             
-            # Альтернативный вариант для нового дизайна
             return self.soup.select_one('.description .text').text.strip()
         except AttributeError:
             return None
 
-# Остальная часть кода (main и т.д.) остается без изменений
-
 def main():
-    # Читаем файл с ссылками
-    with open('restaurants.txt', 'r') as f:
-        urls = f.read().splitlines()
+    start_time = time.time()
+    start_dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"Script started at: {start_dt}")
     
-    results = []
+    try:
+        with open('restaurants.txt', 'r') as f: # restaurants test.txt for test, restaurants.txt for prod
+            urls = f.read().splitlines()
+        
+        results = []
+        
+        with tqdm(total=len(urls), desc="Processing") as pbar:
+            for url in urls:
+                try:
+                    response = requests.get(url, timeout=15)
+                    response.raise_for_status()
+                    
+                    parser = RestaurantParser(response.text, url)
+                    data = parser.parse()
+                    
+                    data['source'] = {
+                        'url': url,
+                        'domain': urlparse(url).netloc
+                    }
+                    
+                    results.append(data)
+                    
+                except Exception as e:
+                    print(f"\nError processing {url}: {str(e)}")
+                finally:
+                    pbar.update(1)
+        
+        with open('restaurants.json', 'w', encoding='utf-8') as f:
+            json.dump(results, f, ensure_ascii=False, indent=2)
+            
+    except Exception as e:
+        print(f"Fatal error: {str(e)}")
     
-    for url in urls:
-        try:
-            print(f'Processing: {url}')
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            
-            parser = RestaurantParser(response.text)
-            data = parser.parse()
-            
-            # Добавляем исходный URL
-            data['source_url'] = url
-            
-            results.append(data)
-            
-        except Exception as e:
-            print(f'Error processing {url}: {str(e)}')
-    
-    # Сохраняем результат
-    with open('restaurants.json', 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    
-    print(f'Successfully parsed {len(results)} restaurants')
+    # Тайминг выполнения
+    end_time = time.time()
+    elapsed = end_time - start_time
+    print(f"\nTotal execution time: {elapsed:.2f} seconds")
+    print(f"Average per page: {elapsed/len(urls):.2f} seconds")
 
 if __name__ == '__main__':
     main()
