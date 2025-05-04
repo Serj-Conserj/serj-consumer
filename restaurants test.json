@@ -12,7 +12,7 @@
       "Таганская"
     ],
     "type": "Кафе",
-    "average_check": null,
+    "average_check": "2000-2500",
     "main_cuisine": [
       "Европейская",
       "Итальянская"
@@ -45,13 +45,37 @@
       "lat": 55.740544,
       "lon": 37.654142
     },
-    "features": [],
+    "features": [
+      "WiFi",
+      "Барная стойка",
+      "Бесплатная парковка",
+      "Винотека",
+      "Караоке",
+      "Круглосуточная кухня",
+      "Круглосуточный режим работы",
+      "Кулинария",
+      "Меню на английском",
+      "Принимаются карты",
+      "Спортивные трансляции",
+      "Танцпол"
+    ],
     "booking_links": {
       "main": "https://leclick.ru/restaurants/partner-reserve/id/2430/from/website?lang=ru",
       "banquet": "https://leclick.ru/restaurants/partner-reserve/id/2430/from/website?banquet=1&lang=ru"
     },
     "deposit_rules": "Вход в караоке зал с воскресенья по четверг 500 руб в пятницу и субботу 700 руб\r в караоке пт, сб: депозит 1500 руб/чел + 1000 руб вход",
-    "visit_purposes": [],
+    "visit_purposes": [
+      "Бизнес-ланч",
+      "Весело напиться",
+      "Познакомиться",
+      "Потанцевать",
+      "Проведение банкетов",
+      "Произвести впечатление",
+      "Романтическая встреча",
+      "Свадьба",
+      "Семейный ужин",
+      "Ужин с друзьями"
+    ],
     "reviews": [
       {
         "author": "Аноним",
@@ -187,7 +211,7 @@
       "Чистые пруды"
     ],
     "type": "Ресторан",
-    "average_check": null,
+    "average_check": "1500-2000",
     "main_cuisine": [
       "Итальянская",
       "Средиземноморская"
@@ -217,13 +241,26 @@
       "lat": 55.766102,
       "lon": 37.634202
     },
-    "features": [],
+    "features": [
+      "WiFi",
+      "Барная стойка",
+      "Винотека",
+      "Выпечка",
+      "Детское меню",
+      "Доставка",
+      "Летняя терраса",
+      "Принимаются карты"
+    ],
     "booking_links": {
       "main": "https://leclick.ru/restaurants/partner-reserve/id/4353/from/website?lang=ru",
       "banquet": "https://leclick.ru/restaurants/partner-reserve/id/4353/from/website?banquet=1&lang=ru"
     },
     "deposit_rules": null,
-    "visit_purposes": [],
+    "visit_purposes": [
+      "Бизнес-ланч",
+      "Романтическая встреча",
+      "Семейный ужин"
+    ],
     "reviews": [
       {
         "author": "Аноним",
@@ -417,7 +454,7 @@
     "address": "Милютинский пер., д. 19/4, стр. 1",
     "close_metro": [],
     "type": "Антикафе",
-    "average_check": null,
+    "average_check": "300-500",
     "main_cuisine": [
       "Европейская"
     ],
@@ -440,7 +477,9 @@
       "lat": 55.765652,
       "lon": 37.63229
     },
-    "features": [],
+    "features": [
+      "Круглосуточный режим работы"
+    ],
     "booking_links": {
       "main": "https://leclick.ru/restaurants/partner-reserve/id/7273/from/website?lang=ru",
       "banquet": "https://leclick.ru/restaurants/partner-reserve/id/7273/from/website?banquet=1&lang=ru"
@@ -523,7 +562,7 @@
       "Арбатская"
     ],
     "type": "Кальян-бар",
-    "average_check": null,
+    "average_check": 1500,
     "main_cuisine": [
       "Европейская"
     ],
@@ -550,7 +589,17 @@
       "lat": 55.757418,
       "lon": 37.602097
     },
-    "features": [],
+    "features": [
+      "WiFi",
+      "Барная стойка",
+      "Доставка",
+      "Камин",
+      "Круглосуточная кухня",
+      "Круглосуточный режим работы",
+      "Меню на английском",
+      "Настольные игры",
+      "Принимаются карты"
+    ],
     "booking_links": {
       "main": "https://leclick.ru/restaurants/partner-reserve/id/14260/from/website?lang=ru",
       "banquet": "https://leclick.ru/restaurants/partner-reserve/id/14260/from/website?banquet=1&lang=ru"

@@ -227,11 +227,16 @@ class RestaurantParser:
 
     def get_average_check(self):
         try:
-            check_text = self.soup.find(text='Средний чек:').find_next().text.strip()
-            if '—' in check_text:
-                return check_text.replace('—', '-')
+            check_block = self.soup.find('div', class_='importantInfo').find(
+                'span', string='Средний чек:'
+            ).find_parent('div', class_='items')
+            
+            check_text = check_block.get_text(strip=True).replace('Средний чек:', '')
+            
+            if '—' in check_text or '-' in check_text:
+                return check_text.replace('—', '-').strip()
             return int(re.sub(r'\D', '', check_text))
-        except (AttributeError, ValueError):
+        except (AttributeError, ValueError, TypeError):
             return None
 
     def get_cuisines(self):
@@ -316,22 +321,28 @@ class RestaurantParser:
             return None
 
     def get_visit_purposes(self):
-        purposes = []
         try:
-            purpose_section = self.soup.find(text='Цель посещения:').find_parent('.items')
-            purposes = [a.text.strip() for a in purpose_section.select('a')]
+            purpose_block = self.soup.find('div', class_='importantInfo').find(
+                'span', string='Цель посещения:'
+            ).find_parent('div', class_='items')
+            
+            return [a.text.strip() for a in purpose_block.select('a')]
         except AttributeError:
-            pass
-        return purposes
+            return []
 
     def get_features(self):
-        features = []
         try:
-            features_section = self.soup.find(text='Особенности:').find_parent('.items')
-            features = [a.text.strip() for a in features_section.select('a')]
+            features_block = self.soup.find('div', class_='importantInfo').find(
+                'span', string='Особенности:'
+            ).find_parent('div', class_='items')
+            
+            return [
+                a.text.strip() 
+                for a in features_block.select('a:not(.hidden)')
+                if a.text.strip()
+            ]
         except AttributeError:
-            pass
-        return features
+            return []
 
     def get_reviews(self):
         reviews = []
