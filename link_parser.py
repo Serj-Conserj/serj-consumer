@@ -407,7 +407,7 @@ def main():
     print(f"Script started at: {start_dt}")
     
     try:
-        with open('restaurants test.txt', 'r') as f: # restaurants test.txt for test, restaurants.txt for prod
+        with open('restaurants.txt', 'r') as f: # restaurants test.txt for test, restaurants.txt for prod
             urls = f.read().splitlines()
         
         results = []
@@ -433,7 +433,7 @@ def main():
                 finally:
                     pbar.update(1)
         
-        with open('restaurants test.json', 'w', encoding='utf-8') as f:
+        with open('restaurants.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
             
     except Exception as e:
