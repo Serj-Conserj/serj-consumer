@@ -145,6 +145,21 @@ class RestaurantParser:
         self.full_url = full_url
         self.base_url = f"{urlparse(full_url).scheme}://{urlparse(full_url).netloc}"
 
+    def get_restaurant_id(self):
+        try:
+            # Ищем элемент с классом rest-fav-bl и извлекаем data-id
+            fav_block = self.soup.find('div', class_='rest-fav-bl')
+            if fav_block and fav_block.has_attr('data-id'):
+                return fav_block['data-id']
+            
+            # Фолбек для старых версий (если потребуется)
+            legacy_div = self.soup.find('div', {'data-restaurant-id': True})
+            return legacy_div['data-restaurant-id'] if legacy_div else None
+            
+        except Exception as e:
+            print(f"Error getting restaurant id: {str(e)}")
+            return None
+
     def get_names(self):
         names = {
             'main': None,
@@ -276,18 +291,19 @@ class RestaurantParser:
 
     def get_booking_links(self):
         booking_links = {}
+        restraunt_id = self.get_restaurant_id()
         try:
             # Основное бронирование
             main_booking = self.soup.select_one('.bookingBtn.mainBooking a')
             if main_booking:
-                full_url = urljoin(self.base_url, main_booking['href'])
-                booking_links['main'] = full_url
+                # full_url = urljoin(self.base_url, main_booking['href'])
+                booking_links['main'] = f"https://leclick.ru/restaurants/partner-reserve/id/{restraunt_id}/from/website?lang=ru"
 
             # Бронирование банкета
             banquet_booking = self.soup.select_one('.bookingBtn a[href*="banquet=1"]')
             if banquet_booking:
-                full_url = urljoin(self.base_url, banquet_booking['href'])
-                booking_links['banquet'] = full_url
+                # full_url = urljoin(self.base_url, banquet_booking['href'])
+                booking_links['banquet'] = f"https://leclick.ru/restaurants/partner-reserve/id/{restraunt_id}/from/website?banquet=1&lang=ru"
         except Exception as e:
             print(f"Error getting booking links: {str(e)}")
         return booking_links
@@ -380,7 +396,7 @@ def main():
     print(f"Script started at: {start_dt}")
     
     try:
-        with open('restaurants.txt', 'r') as f: # restaurants test.txt for test, restaurants.txt for prod
+        with open('restaurants test.txt', 'r') as f: # restaurants test.txt for test, restaurants.txt for prod
             urls = f.read().splitlines()
         
         results = []
@@ -406,7 +422,7 @@ def main():
                 finally:
                     pbar.update(1)
         
-        with open('restaurants.json', 'w', encoding='utf-8') as f:
+        with open('restaurants test.json', 'w', encoding='utf-8') as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
             
     except Exception as e:
