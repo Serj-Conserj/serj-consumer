@@ -1,20 +1,21 @@
+import re
+import time
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
-from webdriver_manager.firefox import GeckoDriverManager
-from config import booking_success_state, booking_failure_state
+from selenium.webdriver.firefox.service import Service
 from selenium.common.exceptions import (
     ElementClickInterceptedException,
     TimeoutException,
 )
-from datetime import datetime
-import time, re
+from webdriver_manager.firefox import GeckoDriverManager
+from config import booking_success_state, booking_failure_state
+from utils.logger import logger
 
 TIME_RE = re.compile(r"^\d{1,2}:\d{2}$")
-
 
 def to_user_data(row: dict) -> dict:
     dt = row["date"]
@@ -28,21 +29,16 @@ def to_user_data(row: dict) -> dict:
         "url": row["url"],
     }
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#                               КЛИЕНТ-БРОНИРОВЩИК
-# ──────────────────────────────────────────────────────────────────────────────
 class BookingClient:
     def __init__(self, user_data: dict, link: str):
         self.data = user_data
         self.link = link
         self.driver = self._init_driver()
 
-    # ---------- настройка браузера ----------
     @staticmethod
     def _init_driver() -> webdriver.Remote:
         opt = Options()
-        opt.headless = True  # включи, если нужен headless
+        opt.headless = True
         opt.set_preference("permissions.default.geo", 2)
         opt.set_preference("geo.enabled", False)
         opt.set_preference("dom.webnotifications.enabled", False)
@@ -55,11 +51,9 @@ class BookingClient:
             options=opt
         )
 
-    # ---------- утилита ожидания ----------
     def _wait_click(self, locator, to=20):
         return WebDriverWait(self.driver, to).until(EC.element_to_be_clickable(locator))
 
-    # ---------- выбор даты ----------
     def select_date(self) -> bool:
         wanted = datetime.strptime(self.data["date_value"], "%Y-%m-%d")
         wanted_day = str(wanted.day)
@@ -75,10 +69,10 @@ class BookingClient:
                 day_btn.click()
             except ElementClickInterceptedException:
                 self.driver.execute_script("arguments[0].click();", day_btn)
-            print("[PARS] ✅ Дата выбрана вручную")
+            logger.info("[PARS] ✅ Дата выбрана вручную")
             return True
         except (TimeoutException, ElementClickInterceptedException):
-            print("[PARS] ❗ Не удалось кликнуть дату — пробуем через JS (Flatpickr)")
+            logger.warning("[PARS] ❗ Не удалось кликнуть дату — пробуем через JS (Flatpickr)")
             try:
                 self.driver.execute_script(
                     """
@@ -89,14 +83,13 @@ class BookingClient:
                     """,
                     self.data["date_value"]
                 )
-                time.sleep(5)  # дать время обновиться
-                print("[PARS] ✅ Дата выставлена через Flatpickr")
+                time.sleep(5)
+                logger.info("[PARS] ✅ Дата выставлена через Flatpickr")
                 return True
             except Exception as e:
-                print("[PARS] ⛔ Ошибка выставления даты через JS:", e)
+                logger.error(f"[PARS] ⛔ Ошибка выставления даты через JS: {e}")
                 return False
 
-    # ---------- выбор персон ----------
     def select_persons(self) -> bool:
         try:
             self._wait_click(
@@ -111,9 +104,9 @@ class BookingClient:
             ).click()
             return True
         except Exception as e:
+            logger.error(f"[PARS] ❌ Ошибка выбора количества персон: {e}")
             return False
 
-    # ---------- выбор времени ----------
     def select_time(self) -> bool:
         try:
             picker = self._wait_click((By.CSS_SELECTOR, "div.leclick-time-select"))
@@ -124,13 +117,12 @@ class BookingClient:
                 for o in picker.find_elements(By.TAG_NAME, "option")
                 if TIME_RE.match(o.get_attribute("data-text") or "")
             ]
-            print("[PARS] Время:", [o.get_attribute("data-text") for o in opts], opts)
+
             if not opts:
                 raise RuntimeError("Нет валидных времён HH:MM")
-            
             fmt = "%H:%M"
             want = datetime.strptime(self.data["time_value"], fmt)
-            print("[PARS] want:", want)
+            logger.info("[PARS] Желаемое время: %s", want)
             best = min(
                 opts,
                 key=lambda o: abs(
@@ -146,15 +138,14 @@ class BookingClient:
             )
             return True
         except Exception as e:
+            logger.error(f"[PARS] ❌ Ошибка выбора времени: {e}")
             return False
 
-    # ---------- основной процесс ----------
     def run(self):
         try:
             self.driver.get(self.link)
             time.sleep(2)
 
-            # текстовые поля
             for by, sel, val in (
                 (By.CSS_SELECTOR, "input.leclick-firstName", self.data["first_name"]),
                 (By.ID, "phone", self.data["phone"]),
@@ -169,66 +160,40 @@ class BookingClient:
                 raise RuntimeError("persons fail")
             if not self.select_date():
                 raise RuntimeError("date fail")
-            
             if not self.select_time():
                 raise RuntimeError("time fail")
 
             self.driver.execute_script(
                 "document.querySelector('input#termsOfUse').click();"
             )
-            print("[PARS] ✓ Форма заполнена и готова к отправке")
-            # self._wait_click((By.CSS_SELECTOR,'button.leclick-submit')).click() # создание брони
-
+            logger.info("[PARS] ✓ Форма заполнена и готова к отправке")
             time.sleep(2)
-
             return {
                 "status": booking_success_state,
             }
         except Exception as e:
+            logger.error(f"[PARS] ❌ Ошибка бронирования парсингом: {e}")
             raise RuntimeError("❌ Ошибка бронирования парсингом")
         finally:
             self.driver.quit()
-        return {
-            "status": booking_failure_state,
-        }
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-#                                Публичная точка входа
-# ──────────────────────────────────────────────────────────────────────────────
-# def book_table(user_data: dict):
-#     user_data = to_user_data(user_data)
-#     try:
-#         link = user_data.pop("url", None)
-#         if not link:
-#             raise ValueError("[PARS] ❌ Не указана ссылка на бронь")
-#         resp = BookingClient(user_data, link).run()
-#         return resp
-#     except Exception as e:
-#         print("[PARS] ⛔  Ошибка бронирования:", e)
-#         raise RuntimeError(
-#             "[PARS] ❌ Бронирование парсингом не получилось, попробуем звонок"
-#         )
 def book_table(user_data: dict):
-    print("[PARS] 📥 Входящие данные:", user_data)
+    logger.info("[PARS] 📥 Входящие данные: %s", user_data)
     user_data = to_user_data(user_data)
     try:
         link = user_data.pop("url", None)
         if not link:
-            raise ValueError("[PARS] ❌ Не указана ссылка на бронь")
-        print("[PARS] 🔗 Ссылка:", link)
+            raise ValueError("❌ Не указана ссылка на бронь")
+        logger.info("[PARS] 🔗 Ссылка: %s", link)
         resp = BookingClient(user_data, link).run()
-        print("[PARS] ✅ Ответ:", resp)
+        logger.info("[PARS] ✅ Ответ: %s", resp)
         return resp
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print("[PARS] ⛔ Ошибка бронирования:", e)
-        raise RuntimeError(
-            "[PARS] ❌ Бронирование парсингом не получилось, попробуем звонок"
-        )
+        logger.error("[PARS] ⛔ Ошибка бронирования: %s", e)
+        raise RuntimeError("❌ Бронирование парсингом не получилось, попробуем звонок")
 
-# ───────────────────────────── локальный тест ────────────────────────────────
 if __name__ == "__main__":
     demo = {
         "first_name": "Иван",
@@ -238,7 +203,5 @@ if __name__ == "__main__":
         "date_value": "2025-05-08",
         "time_value": "22:13",
     }
-    demo_link = (
-        "https://leclick.ru/restaurants/partner-reserve/id/13259/from/website?lang=ru"
-    )
+    demo_link = "https://leclick.ru/restaurants/partner-reserve/id/13259/from/website?lang=ru"
     book_table(demo, demo_link)

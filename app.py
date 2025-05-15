@@ -1,5 +1,5 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import asyncio, json, logging, sys
+import asyncio, json, os
 from aio_pika import connect_robust
 from voice_bot.services import VoiceBotService
 from utils.db_connection import get_booking_data_async
@@ -12,13 +12,8 @@ from config import (
     booking_failure_state,
     booking_success_state,
 )
+from utils.logger import logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(title="VoiceBot API")
 service = VoiceBotService()
@@ -30,24 +25,22 @@ async def fetch_booking_info_from_queue(queue_name: str):
     await chan.set_qos(prefetch_count=1)
     queue = await chan.declare_queue(queue_name, durable=True)
 
-    print("🚀 Waiting for message from RabbitMQ...")
+    logger.info("🚀 Waiting for message from RabbitMQ...")
 
     incoming = None
 
     while True:
         try:
-
             incoming = await queue.get(timeout=5)
             if incoming:
-                print(f"✅ Message received")
+                logger.info("✅ Message received")
                 break
-        except Exception as e:
-            # print(f"⚠️ No message received yet ({e})")
+        except Exception:
             await asyncio.sleep(1)
 
     if not incoming:
         await conn.close()
-        raise TimeoutError(f"⛔ No messages in queue")
+        raise TimeoutError("⛔ No messages in queue")
 
     data = json.loads(incoming.body)
     await incoming.ack()
@@ -67,9 +60,8 @@ async def websocket_endpoint(websocket: WebSocket):
     logger.info("🟢 Client connected, now pulling booking_info from queue…")
 
     try:
-
         booking_info = await fetch_booking_info_from_queue(call_queue)
-        logger.info(f"📥 Got booking_info from queue: {booking_infoюпуе}")
+        logger.info(f"📥 Got booking_info from queue: {booking_info}")
 
         system_prompt = service.build_system_prompt(booking_info)
 
@@ -79,7 +71,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
         while True:
             try:
-
                 audio_data = await websocket.receive_bytes()
                 logger.info("🎧 Получено аудио от клиента")
 
@@ -103,18 +94,13 @@ async def websocket_endpoint(websocket: WebSocket):
                             await asyncio.to_thread(service.tts.synthesize, farewell)
                         )
                     except Exception as synth_err:
-                        logger.error(
-                            f"❌ Ошибка при отправке финального сообщения: {synth_err}"
-                        )
+                        logger.error(f"❌ Ошибка при отправке финального сообщения: {synth_err}")
 
-                    await websocket.send_text(
-                        json.dumps({"status": booking_failure_state})
-                    )
+                    await websocket.send_text(json.dumps({"status": booking_failure_state}))
                     logger.info("🔔 Статус сессии: failed (из-за ошибки модели)")
                     send_status_to_backend(
                         str(booking_info["booking_id"]), booking_failure_state
                     )
-
                     break
 
                 status = service.extract_status(bot_reply)
@@ -154,14 +140,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.on_event("startup")
 async def startup_event():
-
     asyncio.create_task(consume_queue(pars_queue, process_pars))
     logger.info("🚀 Background consumer for pars_queue started")
 
 
 if __name__ == "__main__":
-    import uvicorn
-    import os
-
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080, log_config=None)

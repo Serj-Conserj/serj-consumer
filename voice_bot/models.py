@@ -10,13 +10,14 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+from utils.logger import logger  # 🔹 логгер
 
 load_dotenv()
 
 
 class LLMModel:
     def __init__(self):
-        print("[INIT] Preparing Groq API connection...")
+        logger.info("[INIT] Preparing Groq API connection...")
 
     def generate_reply(self, prompt: str) -> str:
         url = "https://api.groq.com/openai/v1/chat/completions"
@@ -40,17 +41,17 @@ class LLMModel:
             response.raise_for_status()
             return response.json()["choices"][0]["message"]["content"].strip()
         except requests.RequestException as e:
-            print(f"[ERROR] Request failed: {e}")
+            logger.error(f"[ERROR] Request failed: {e}")
             raise RuntimeError(f"Ошибка при получении ответа от модели: {e}")
 
         except (KeyError, IndexError) as e:
-            print(f"[ERROR] Invalid response structure: {e}")
+            logger.error(f"[ERROR] Invalid response structure: {e}")
             raise RuntimeError(f"Ошибка обработки ответа от модели: {e}")
 
 
 class ASRModel:
     def __init__(self):
-        print("[INIT] Loading ASR model...")
+        logger.info("[INIT] Loading ASR model...")
         self.model = whisper.load_model("base")
 
     def transcribe(self, audio_bytes: bytes, language: str = "ru") -> str:
@@ -70,6 +71,7 @@ class ASRModel:
             )
 
         text = result["text"].strip()
+        logger.info(f"[ASR] Распознанный текст: {text}")
 
         text = self._postprocess_text(text)
         return text
@@ -82,31 +84,8 @@ class ASRModel:
         return text
 
 
-class LLMModel_TinyLlama:
-    def __init__(self):
-        print("[INIT] Loading TinyLlama...")
-        self.pipe = pipeline(
-            "text-generation",
-            model="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
-            torch_dtype="auto",
-            device_map="auto",
-        )
-
-    def generate_reply(self, prompt: str) -> str:
-        out = self.pipe(
-            prompt,
-            max_new_tokens=150,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.95,
-            return_full_text=False,
-        )
-        return out[0]["generated_text"].strip()
-
-
 class TTSModel:
     def __init__(self):
-
         torch.backends.quantized.engine = "none"
         torch.set_num_threads(4)
 
@@ -116,6 +95,7 @@ class TTSModel:
         self.sample_rate = 48000
         self.speaker = "xenia"
 
+        logger.info("[INIT] Loading TTS model...")
         self.model, self.example_text = torch.hub.load(
             repo_or_dir="snakers4/silero-models",
             model="silero_tts",
@@ -126,6 +106,7 @@ class TTSModel:
 
     def synthesize(self, text, speaker=None):
         """Генерация аудио с возможностью смены голоса"""
+        logger.info(f"[TTS] Генерация речи: {text[:50]}...")
         audio = self.model.apply_tts(
             text=text, speaker=speaker or self.speaker, sample_rate=self.sample_rate
         )

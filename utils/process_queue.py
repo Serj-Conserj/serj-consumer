@@ -6,18 +6,7 @@ from utils.db_connection import get_booking_data_async
 from utils.request import send_status_to_backend
 from parsing.booking import book_table
 import time
-
-
-async def process_call(msg: IncomingMessage):
-    async with msg.process():
-        data = json.loads(msg.body)
-        booking_id = data.get("booking_id")
-        print("[CALL] received", booking_id)
-        if booking_id:
-            result = await get_booking_data_async(booking_id)
-            print("[CALL] result", result)
-            # … отправка в call-часть …
-            await asyncio.sleep(1)
+from utils.logger import logger  
 
 
 async def process_pars(msg: IncomingMessage):
@@ -30,9 +19,9 @@ async def process_pars(msg: IncomingMessage):
                 resp = book_table(user_data)
                 if resp.get("status") == booking_success_state:
                     await send_status_to_backend(booking_id, booking_success_state)
-                    print("[PARS] ✓ Бронирование успешно отправлено")
+                    logger.info("[PARS] ✓ Бронирование успешно отправлено")
             except Exception as e:
-                print("[PARS] ⛔  Ошибка бронирования:", e)
+                logger.error(f"[PARS] ⛔  Ошибка бронирования: {e}")
                 fallback_body = json.dumps({"booking_id": booking_id}).encode()
                 conn = await connect_robust(rabbitmq_url)
                 async with conn:
@@ -41,7 +30,7 @@ async def process_pars(msg: IncomingMessage):
                         Message(fallback_body, delivery_mode=DeliveryMode.PERSISTENT),
                         routing_key=call_queue,
                     )
-                print(f"[PARS] {booking_id} отправлен в {call_queue} для дозвона")
+                logger.info(f"[PARS] {booking_id} отправлен в {call_queue} для дозвона")
 
 
 async def consume_queue(queue_name: str, processor):
@@ -51,5 +40,5 @@ async def consume_queue(queue_name: str, processor):
     await chan.set_qos(prefetch_count=1)
     queue = await chan.declare_queue(queue_name, durable=True)
     await queue.consume(processor)
-    print(f"[INFO] consuming {queue_name}")
+    logger.info(f"[INFO] consuming {queue_name}")
     return conn
