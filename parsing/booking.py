@@ -40,17 +40,19 @@ class BookingClient:
 
     # ---------- настройка браузера ----------
     @staticmethod
-    def _init_driver() -> webdriver.Firefox:
+    def _init_driver() -> webdriver.Remote:
         opt = Options()
-        # opt.add_argument('-headless')    # ⇐ включите, если нужен headless
+        opt.headless = True  # включи, если нужен headless
         opt.set_preference("permissions.default.geo", 2)
         opt.set_preference("geo.enabled", False)
         opt.set_preference("dom.webnotifications.enabled", False)
         opt.set_preference("dom.webdriver.enabled", False)
         opt.set_preference("useAutomationExtension", False)
         opt.set_capability("acceptInsecureCerts", True)
-        return webdriver.Firefox(
-            service=Service(GeckoDriverManager().install()), options=opt
+
+        return webdriver.Remote(
+            command_executor="http://selenium:4444/wd/hub",
+            options=opt
         )
 
     # ---------- утилита ожидания ----------
@@ -73,24 +75,25 @@ class BookingClient:
                 day_btn.click()
             except ElementClickInterceptedException:
                 self.driver.execute_script("arguments[0].click();", day_btn)
+            print("[PARS] ✅ Дата выбрана вручную")
             return True
         except (TimeoutException, ElementClickInterceptedException):
+            print("[PARS] ❗ Не удалось кликнуть дату — пробуем через JS (Flatpickr)")
             try:
                 self.driver.execute_script(
                     """
-                    (function(){
-                        const inp=document.querySelector('input.leclick-date');
-                        if(!inp)return false;
-                        if(inp._flatpickr){inp._flatpickr.setDate(arguments[0],true);return true;}
-                        inp.value=arguments[0];
-                        inp.dispatchEvent(new Event('change',{bubbles:true}));
-                        return true;
-                    })();
+                    const inp = document.querySelector('input.leclick-date');
+                    if (inp && inp._flatpickr) {
+                        inp._flatpickr.setDate(arguments[0], true);
+                    }
                     """,
-                    self.data["date_value"],
+                    self.data["date_value"]
                 )
+                time.sleep(5)  # дать время обновиться
+                print("[PARS] ✅ Дата выставлена через Flatpickr")
                 return True
             except Exception as e:
+                print("[PARS] ⛔ Ошибка выставления даты через JS:", e)
                 return False
 
     # ---------- выбор персон ----------
@@ -121,10 +124,13 @@ class BookingClient:
                 for o in picker.find_elements(By.TAG_NAME, "option")
                 if TIME_RE.match(o.get_attribute("data-text") or "")
             ]
+            print("[PARS] Время:", [o.get_attribute("data-text") for o in opts], opts)
             if not opts:
                 raise RuntimeError("Нет валидных времён HH:MM")
+            
             fmt = "%H:%M"
             want = datetime.strptime(self.data["time_value"], fmt)
+            print("[PARS] want:", want)
             best = min(
                 opts,
                 key=lambda o: abs(
@@ -163,6 +169,7 @@ class BookingClient:
                 raise RuntimeError("persons fail")
             if not self.select_date():
                 raise RuntimeError("date fail")
+            
             if not self.select_time():
                 raise RuntimeError("time fail")
 
@@ -174,7 +181,6 @@ class BookingClient:
 
             time.sleep(2)
 
-            self.driver.quit()
             return {
                 "status": booking_success_state,
             }
@@ -190,20 +196,37 @@ class BookingClient:
 # ──────────────────────────────────────────────────────────────────────────────
 #                                Публичная точка входа
 # ──────────────────────────────────────────────────────────────────────────────
+# def book_table(user_data: dict):
+#     user_data = to_user_data(user_data)
+#     try:
+#         link = user_data.pop("url", None)
+#         if not link:
+#             raise ValueError("[PARS] ❌ Не указана ссылка на бронь")
+#         resp = BookingClient(user_data, link).run()
+#         return resp
+#     except Exception as e:
+#         print("[PARS] ⛔  Ошибка бронирования:", e)
+#         raise RuntimeError(
+#             "[PARS] ❌ Бронирование парсингом не получилось, попробуем звонок"
+#         )
 def book_table(user_data: dict):
+    print("[PARS] 📥 Входящие данные:", user_data)
     user_data = to_user_data(user_data)
     try:
         link = user_data.pop("url", None)
         if not link:
             raise ValueError("[PARS] ❌ Не указана ссылка на бронь")
+        print("[PARS] 🔗 Ссылка:", link)
         resp = BookingClient(user_data, link).run()
+        print("[PARS] ✅ Ответ:", resp)
         return resp
     except Exception as e:
-        print("[PARS] ⛔  Ошибка бронирования:", e)
+        import traceback
+        traceback.print_exc()
+        print("[PARS] ⛔ Ошибка бронирования:", e)
         raise RuntimeError(
             "[PARS] ❌ Бронирование парсингом не получилось, попробуем звонок"
         )
-
 
 # ───────────────────────────── локальный тест ────────────────────────────────
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Устанавливаем Poetry (опционально, если понадобится) или pip обновляем
 RUN pip install --upgrade pip
-
+ENV PYTHONUNBUFFERED=1
 # Копируем requirements внутрь контейнера
 COPY requirements.txt /app/requirements.txt
 
