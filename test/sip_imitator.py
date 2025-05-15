@@ -1,19 +1,3 @@
-"""
-Admin Simulator
-===============
-
-Подключается к VoiceBot FastAPI (ws://localhost:8000/ws?...) и имитирует
-разговор администратора:
-1. Получает голос бота, сохраняет и проигрывает.
-2. Ждёт, чтобы вы ввели текст ответа администратора.
-3. Синтезирует этот текст в речь (TTS) и отправляет обратно боту.
-4. Цикл продолжается, пока бот не завершит соединение.
-
-Usage:
-------
-python admin.py --address "Москва, ул. Тверская 7" --date 2025-05-01 --time 19:00 --people 2 --name Сергей
-"""
-
 import argparse
 import asyncio
 import tempfile
@@ -25,6 +9,7 @@ import torchaudio
 import soundfile as sf
 import simpleaudio as sa
 import websockets
+
 
 class TTSModel:
     def __init__(self):
@@ -48,23 +33,23 @@ class TTSModel:
     def synthesize(self, text, speaker=None):
         """Генерация аудио с возможностью смены голоса"""
         audio = self.model.apply_tts(
-            text=text, 
-            speaker=speaker or self.speaker, 
-            sample_rate=self.sample_rate
+            text=text, speaker=speaker or self.speaker, sample_rate=self.sample_rate
         )
-        
+
         # Convert torch tensor to numpy array
         audio_np = audio.cpu().numpy()
-        
+
         # Convert to bytes
         with io.BytesIO() as wav_buffer:
-            sf.write(wav_buffer, audio_np, self.sample_rate, format='WAV')
+            sf.write(wav_buffer, audio_np, self.sample_rate, format="WAV")
             wav_bytes = wav_buffer.getvalue()
-            
+
         return wav_bytes
+
 
 # Initialize TTS model
 TTS_ENGINE = TTSModel()
+
 
 async def admin_chat(uri: str):
     async with websockets.connect(uri) as ws:
@@ -98,7 +83,7 @@ async def admin_chat(uri: str):
             admin_texts = [
                 "да забронировали для вас стол",
                 "простите не сможем забронировать",
-                "подскажите, пожалуйста, на какое кол-во персон?"
+                "подскажите, пожалуйста, на какое кол-во персон?",
             ]
             weights = [0.5, 0.2, 0.3]
 

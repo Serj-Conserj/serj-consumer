@@ -1,3 +1,5 @@
+selenium
+webdriver_manager
 aio-pika==9.5.5
 aiormq==6.8.1
 annotated-types==0.7.0

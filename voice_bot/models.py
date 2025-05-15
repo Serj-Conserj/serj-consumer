@@ -1,6 +1,3 @@
-import whisper
-
-# from TTS.api import TTS
 from transformers import pipeline
 import torch
 import io

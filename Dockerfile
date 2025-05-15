@@ -25,4 +25,4 @@ COPY . /app
 
 ENV PYTHONPATH=/app
 # Команда по умолчанию для запуска приложения
-CMD ["python", "voice_bot/app.py"]
+CMD ["python", "app.py"]
