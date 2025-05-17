@@ -20,6 +20,10 @@ rabbitmq_url = (
     f"amqp://{rabbitmq_user}:{rabbitmq_pass}@{rabbitmq_host}:{rabbitmq_port}/"
 )
 
+# booking states
+booking_success_state = os.getenv("BOOKING_SUCCESS_STATE")
+booking_failure_state = os.getenv("BOOKING_FAILURE_STATE")
+
 # Имена очередей
 call_queue = os.getenv("CALL_QUEUE")
 pars_queue = os.getenv("PARS_QUEUE")
