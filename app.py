@@ -98,7 +98,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     await websocket.send_text(json.dumps({"status": booking_failure_state}))
                     logger.info("🔔 Статус сессии: failed (из-за ошибки модели)")
-                    send_status_to_backend(
+                    await send_status_to_backend(
                         str(booking_info["booking_id"]), booking_failure_state
                     )
                     break
@@ -113,7 +113,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     await websocket.send_text(json.dumps({"status": status}))
                     logger.info(f"🔔 Статус сессии: {status}")
-                    send_status_to_backend(str(booking_info["booking_id"]), status)
+                    await send_status_to_backend(str(booking_info["booking_id"]), status)
                     break
 
                 await websocket.send_bytes(
