@@ -58,7 +58,7 @@ async def fetch_booking_info_from_queue(queue_name: str):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("🟢 Client connected, now pulling booking_info from queue…")
-
+    status_sent = False
     try:
         booking_info = await fetch_booking_info_from_queue(call_queue)
         logger.info(f"📥 Got booking_info from queue: {booking_info}")
@@ -105,6 +105,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 status = service.extract_status(bot_reply)
                 if status:
+                    status_sent = True 
                     farewell = "Хорошо, спасибо! До свидания!"
                     await websocket.send_bytes(
                         await asyncio.to_thread(service.tts.synthesize, farewell)
@@ -123,6 +124,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
             except WebSocketDisconnect:
                 logger.warning("🔴 Client disconnected")
+                if status_sent: await send_status_to_backend(str(booking_info["booking_id"]), status)
+                else: await send_status_to_backend(str(booking_info["booking_id"]), booking_failure_state)
+
                 break
             except Exception as e:
                 logger.error(f"❌ Error in message loop: {e}")
