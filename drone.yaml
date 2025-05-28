@@ -1,0 +1,34 @@
+#TODO: Testing
+
+kind: pipeline
+type: exec
+name: serj-consumer_delivery
+
+platform:
+  os: linux
+  arch: amd64
+
+trigger:
+  branch:
+    - develop #TODO: When merging to main needs to be replaced (bad situation). Maybe make .env?
+  event:
+    - push
+    - merge
+
+clone:
+  disable: true
+
+steps:
+  - name: Pull the repository
+    commands:
+      - cd /root/serj/serj-consumer
+      - git pull --rebase
+  
+  - name: Restart compose and rebuild related services
+    commands:
+      - cd /root/serj
+      - docker compose up -d --build rabbitmq consumer
+
+  - name: Remove unused images
+    commands:
+      - docker image prune -f
