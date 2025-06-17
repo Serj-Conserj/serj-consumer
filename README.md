@@ -27,7 +27,7 @@ Serj Consumer is a FastAPI based service that acts as a voice bot for table rese
 
 The application exposes a single WebSocket endpoint:
 
-- `GET /ws` – exchange audio messages with the bot. The server pulls booking information from the queue and starts a conversation. Audio messages are sent and received as binary frames.
+- `GET /ws` – exchange audio messages. The server pulls booking id from the queue and starts a conversation. Audio messages are sent and received as binary frames.
 
 ## Background tasks
 
@@ -55,28 +55,4 @@ The service expects the following variables to be defined (usually via a `.env` 
 | `GROQ_TOKEN` | API token for the Groq LLM service |
 
 At runtime `TOKENIZERS_PARALLELISM=false` is set automatically to avoid warnings from the transformers library.
-
-## Running locally
-
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Provide a `.env` file with the variables listed above.
-3. Start the application:
-   ```bash
-   python app.py
-   ```
-   The server will listen on `0.0.0.0:8080`.
-
-Alternatively, build and run via Docker:
-
-```bash
-docker build -t serj-consumer .
-docker run --env-file .env -p 8080:8080 serj-consumer
-```
-
-## License
-
-This project is provided without a specific license.
 
